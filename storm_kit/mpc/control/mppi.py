@@ -119,6 +119,9 @@ class MPPI(OLGaussianMPC):
         self.best_idx = best_idx
         self.best_traj = torch.index_select(actions, 0, best_idx).squeeze(0)
 
+        # Action cost
+        action_cost = torch.index_select(costs, 0, best_idx).squeeze(0)
+
         top_values, top_idx = torch.topk(self.total_costs, 10)
         #print(ee_pos_seq.shape, top_idx)
         self.top_values = top_values
@@ -200,6 +203,8 @@ class MPPI(OLGaussianMPC):
             #if(cov_update == 'diag_AxA'):
             #    self.scale_tril = torch.sqrt(self.cov_action)
             # self.scale_tril = torch.cholesky(self.cov_action)
+
+        return action_cost
 
         
     def _shift(self, shift_steps):

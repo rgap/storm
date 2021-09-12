@@ -200,7 +200,10 @@ class WorldPrimitiveCollision(WorldGridCollision):
     def load_collision_model(self, world_collision_params):
         
         world_objs = world_collision_params['coll_objs']
-        sphere_objs = world_objs['sphere']
+        if('sphere' in world_objs):
+            sphere_objs = world_objs['sphere']
+        else:
+            sphere_objs = []
         if('cube' in world_objs):
             cube_objs = world_objs['cube']
         else:
@@ -454,7 +457,9 @@ class WorldImageCollision(WorldCollision):
         
         num_voxels = self.im_dims
         
-        flat_tensor = torch.tensor([num_voxels[1], 1], device=self.tensor_args['device'], dtype=torch.int64)
+        ## LINEA CHANGED
+        # flat_tensor = torch.tensor([num_voxels[1], 1], device=self.tensor_args['device'], dtype=torch.int64)
+        flat_tensor = torch.tensor(num_voxels[1], device=self.tensor_args['device'], dtype=torch.int64)
         self.scene_voxels = torch.flatten(self.scene_im) * (1 / self.pitch[0])
 
         

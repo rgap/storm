@@ -247,16 +247,20 @@ class Controller(ABC):
 
                     # update distribution parameters
                     with profiler.record_function("mppi_update"):
-                        self._update_distribution(trajectory)
+                        ## MPPI MODULE CALLLED
+                        ## trajectory already contains all costs (500, 30)
+                        action_cost = self._update_distribution(trajectory)
                     info['rollout_time'] += trajectory['rollout_time']
 
                     # check if converged
                     if self.check_convergence():
                         break
         self.trajectories = trajectory
-        #calculate best action
+        # calculate best action - NEXT ACTION TO EXECUTE
         # curr_action = self._get_next_action(state, mode=self.sample_mode)
+        ## curr_action_seq (30, 7)
         curr_action_seq = self._get_action_seq(mode=self.sample_mode)
+
         #calculate optimal value estimate if required
         value = 0.0
         if calc_val:
@@ -272,8 +276,11 @@ class Controller(ABC):
         info['entropy'].append(self.entropy)
 
         self.num_steps += 1
+        act = curr_action_seq.to(inp_device, dtype=inp_dtype)
 
-        return curr_action_seq.to(inp_device, dtype=inp_dtype), value, info
+        # This should compute the cost but I won't use it
+        # action_cost = self.compute_cost(state, act)
+        return act, value, info, action_cost
 
     def get_optimal_value(self, state):
         """

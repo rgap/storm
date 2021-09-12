@@ -161,16 +161,16 @@ cost:
   retract_weight: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,0.0]
 
 mppi:
-  horizon           : 30
-  init_cov          : 0.005 #.5 #.5
+  horizon           : 20
+  init_cov          : 0.5 #.5
   gamma             : 0.98
   n_iters           : 1
   step_size_mean    : 0.98
   step_size_cov     : 0.7
-  beta              : 1.0
+  beta              : 1 # lambda or temperature
   alpha             : 1
-  num_particles     : 500 #10000
-  update_cov        : False
+  num_particles     : 150 #10000
+  update_cov        : True
   cov_type          : 'diag_AxA' # 
   kappa             : 0.005
   null_act_frac     : 0.01

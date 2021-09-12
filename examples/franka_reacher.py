@@ -28,7 +28,7 @@ from isaacgym import gymapi
 from isaacgym import gymutil
 
 import torch
-torch.multiprocessing.set_start_method('spawn',force=True)
+torch.multiprocessing.set_start_method('forkserver',force=True)
 torch.set_num_threads(8)
 torch.backends.cudnn.benchmark = False
 torch.backends.cuda.matmul.allow_tf32 = True

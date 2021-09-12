@@ -33,7 +33,11 @@ from .helpers import load_struct_from_dict
 
 class Gym(object):
     def __init__(self,sim_params={}, physics_engine='physx', compute_device_id=0, graphics_device_id=1, num_envs=1, headless=False, **kwargs):
+        self.viewer = None
 
+        self.initialize(sim_params, physics_engine, compute_device_id, graphics_device_id, num_envs, headless)
+
+    def initialize(self,sim_params={}, physics_engine='physx', compute_device_id=0, graphics_device_id=1, num_envs=1, headless=False, **kwargs):
         if(physics_engine=='physx'):
             physics_engine = gymapi.SIM_PHYSX
         elif(physics_engine == 'flex'):
@@ -52,18 +56,25 @@ class Gym(object):
                                        sim_engine_params)
 
         self.env_list = []#None
-        self.viewer = None
+
         self._create_envs(num_envs, num_per_row=int(np.sqrt(num_envs)))
         if(not headless):
-            self.viewer = self.gym.create_viewer(self.sim, gymapi.CameraProperties())
-            cam_pos = gymapi.Vec3(-1.5, 1.8, 1.2)
-            cam_target = gymapi.Vec3(6, 0.0, -6)
+            camera_properties = gymapi.CameraProperties()
+            camera_properties.width = 720
+            camera_properties.height = 480
+            # if self.viewer == None:
+            self.viewer = self.gym.create_viewer(self.sim, camera_properties)
+            # else:
+            #     self.gym.draw_viewer(self.viewer, self.sim, True)
+            cam_pos = gymapi.Vec3(-1.2, 1.7, -0.5)
+            cam_target = gymapi.Vec3(0, 1.5, 0)
             #cam_pos = gymapi.Vec3(2, 2.0, -2)
             #cam_target = gymapi.Vec3(-6, 0.0,6)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
         #self.gym.add_ground(self.sim, gymapi.PlaneParams())
 
         self.dt = sim_engine_params.dt
+
     def step(self):
         
         ## step through the physics regardless, only apply torque when sim time matches the real time
@@ -114,6 +125,11 @@ class Gym(object):
         self.gym.add_lines(self.viewer,self.env_list[env_idx],pts.shape[0] - 1,verts, colors)
         #self.gym.add_lines(self.viewer,self.env_list[env_idx],pts.shape[0] - 1,verts, colors)
 
+
+    def __del__(self):
+        self.gym.destroy_viewer(self.viewer)
+        self.gym.destroy_sim(self.sim)
+
 class World(object):
     def __init__(self, gym_instance, sim_instance, env_ptr, world_params=None, w_T_r=None):
         self.gym = gym_instance
@@ -135,34 +151,37 @@ class World(object):
 
         if(world_params is None):
             return
-        spheres = world_params['world_model']['coll_objs']['sphere']
-        for obj in spheres.keys():
-            radius = spheres[obj]['radius']
-            position = spheres[obj]['position']
 
-            
-            
-            # get pose
-            
-            object_pose = gymapi.Transform()
-            object_pose.p = gymapi.Vec3(position[0], position[1], position[2])
-            object_pose.r = gymapi.Quat(0, 0, 0,1)
-            object_pose = w_T_r * object_pose
+        if 'sphere' in world_params['world_model']['coll_objs']:
+            spheres = world_params['world_model']['coll_objs']['sphere']
+            for obj in spheres.keys():
+                radius = spheres[obj]['radius']
+                position = spheres[obj]['position']
 
-            #
 
-            obj_asset = gym_instance.create_sphere(sim_instance,radius, asset_options)
-            obj_handle = gym_instance.create_actor(env_ptr, obj_asset, object_pose, obj, 2, 2, self.ENV_SEG_LABEL)
-            gym_instance.set_rigid_body_color(env_ptr, obj_handle, 0, gymapi.MESH_VISUAL_AND_COLLISION, obj_color)
+
+                # get pose
+
+                object_pose = gymapi.Transform()
+                object_pose.p = gymapi.Vec3(position[0], position[1], position[2])
+                object_pose.r = gymapi.Quat(0, 0, 0,1)
+                object_pose = w_T_r * object_pose
+
+                #
+
+                obj_asset = gym_instance.create_sphere(sim_instance,radius, asset_options)
+                obj_handle = gym_instance.create_actor(env_ptr, obj_asset, object_pose, obj, 2, 2, self.ENV_SEG_LABEL)
+                gym_instance.set_rigid_body_color(env_ptr, obj_handle, 0, gymapi.MESH_VISUAL_AND_COLLISION, obj_color)
 
         if('cube' in world_params['world_model']['coll_objs']):
             cube = world_params['world_model']['coll_objs']['cube']
             for obj in cube.keys():
                 dims = cube[obj]['dims']
                 pose = cube[obj]['pose']
-                self.add_table(dims, pose, color=color)
-            
-
+                if 'obstacle' in obj:
+                    self.add_table(dims, pose, color=[0.6, 0.4, 0.3])
+                else:
+                    self.add_table(dims, pose, color=color)
     
     def add_table(self, table_dims, table_pose, color=[1.0,0.0,0.0]):
 

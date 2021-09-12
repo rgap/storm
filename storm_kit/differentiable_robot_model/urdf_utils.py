@@ -163,7 +163,7 @@ class URDFRobotModel(object):
             body_params['mass'] = None
             body_params['com'] = None
             body_params['inertia_mat'] = None
-            print("no dynamics information for link: {}".format(link.name))
+            # print("no dynamics information for link: {}".format(link.name))
 
         return body_params
 

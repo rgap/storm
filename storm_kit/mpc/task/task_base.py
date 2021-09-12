@@ -32,9 +32,11 @@ class BaseTask():
         self.tensor_args = tensor_args
         self.prev_qdd_des = None
     def init_aux(self):
+        # Split into init_aux and initialize_control_process
         self.state_filter = JointStateFilter(filter_coeff=self.exp_params['state_filter_coeff'], dt=self.exp_params['control_dt'])
-        
         self.command_filter = JointStateFilter(filter_coeff=self.exp_params['cmd_filter_coeff'], dt=self.exp_params['control_dt'])
+
+    def initialize_control_process(self):
         self.control_process = ControlProcess(self.controller)
         self.n_dofs = self.controller.rollout_fn.dynamics_model.n_dofs
         self.zero_acc = np.zeros(self.n_dofs)
@@ -50,7 +52,6 @@ class BaseTask():
         self.control_process.update_params(**kwargs)
         return True
 
-
     def get_command(self, t_step, curr_state, control_dt, WAIT=False):
 
         # predict forward from previous action and previous state:
@@ -62,15 +63,15 @@ class BaseTask():
         state_tensor = self._state_to_tensor(filt_state)
 
         if(WAIT):
-            next_command, val, info, best_action = self.control_process.get_command_debug(t_step, state_tensor.numpy(), control_dt=control_dt)
+            next_command, val, info, best_action, action_cost = self.control_process.get_command_debug(t_step, state_tensor.numpy(), control_dt=control_dt)
         else:
-            next_command, val, info, best_action = self.control_process.get_command(t_step, state_tensor.numpy(), control_dt=control_dt)
+            next_command, val, info, best_action, action_cost = self.control_process.get_command(t_step, state_tensor.numpy(), control_dt=control_dt)
 
         qdd_des = next_command
         self.prev_qdd_des = qdd_des
         cmd_des = self.state_filter.integrate_acc(qdd_des)
 
-        return cmd_des
+        return action_cost, cmd_des
 
 
 
@@ -82,7 +83,6 @@ class BaseTask():
     def get_current_error(self, curr_state):
         state_tensor = self._state_to_tensor(curr_state).to(**self.controller.tensor_args).unsqueeze(0)
 
-        
         ee_error,_ = self.controller.rollout_fn.current_cost(state_tensor)
         ee_error = [x.detach().cpu().item() for x in ee_error]
         return ee_error

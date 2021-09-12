@@ -44,13 +44,17 @@ class PrimitiveCollisionCost(nn.Module):
                                                              tensor_args=self.tensor_args,
                                                              bounds=robot_params['world_collision_params']['bounds'],
                                                              grid_resolution=robot_params['world_collision_params']['grid_resolution'])
-        
+
         self.n_world_objs = self.robot_world_coll.world_coll.n_objs
         self.t_mat = None
         self.distance_threshold = distance_threshold
+
+    def update_collision(self, world_collision_params):
+        self.robot_world_coll.update_collision(world_collision_params)
+
     def forward(self, link_pos_seq, link_rot_seq):
 
-        
+
         inp_device = link_pos_seq.device
         batch_size = link_pos_seq.shape[0]
         horizon = link_pos_seq.shape[1]

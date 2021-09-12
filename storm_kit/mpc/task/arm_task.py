@@ -32,15 +32,29 @@ from ...mpc.utils.mpc_process_wrapper import ControlProcess
 from ...util_file import get_assets_path, join_path, load_yaml, get_gym_configs_path
 from .task_base import BaseTask
 
+from ..cost import CollisionCost, VoxelCollisionCost, PrimitiveCollisionCost
+
+
 
 class ArmTask(BaseTask):
     def __init__(self, task_file='ur10.yml', robot_file='ur10_reacher.yml', world_file='collision_env.yml', tensor_args={'device':"cpu", 'dtype':torch.float32}):
 
         super().__init__(tensor_args=tensor_args)
+        self.init_mppi(task_file, robot_file, world_file)
+
+    def change_params(self, beta, init_cov):
+        if beta:
+            print('beta update')
+            self.controller.beta = beta
+        if init_cov:
+            print('init_cov update')
+            self.controller.init_cov = init_cov
+
+    def change_collision_params(self, world_collision):
+        self.rollout_fn.primitive_collision_cost.robot_world_coll.world_coll.load_collision_model(world_collision)
+        self.world_params = {'world_model': world_collision}
+        self.rollout_fn.update_collision(world_collision)
         
-        
-        self.controller = self.init_mppi(task_file, robot_file, world_file)
-        self.init_aux()
         
     def get_rollout_fn(self, **kwargs):
         rollout_fn = ArmBase(**kwargs)
@@ -48,38 +62,43 @@ class ArmTask(BaseTask):
 
     def init_mppi(self, task_file, robot_file, collision_file):
         robot_yml = join_path(get_gym_configs_path(), robot_file)
-        
+
         with open(robot_yml) as file:
             robot_params = yaml.load(file, Loader=yaml.FullLoader)
 
         world_yml = join_path(get_gym_configs_path(), collision_file)
         with open(world_yml) as file:
-            world_params = yaml.load(file, Loader=yaml.FullLoader)
+            self.world_params = yaml.load(file, Loader=yaml.FullLoader)
 
         mpc_yml_file = join_path(mpc_configs_path(), task_file)
 
         with open(mpc_yml_file) as file:
-            exp_params = yaml.load(file, Loader=yaml.FullLoader)
-        exp_params['robot_params'] = exp_params['model'] #robot_params
-        
-        
-        rollout_fn = self.get_rollout_fn(exp_params=exp_params, tensor_args=self.tensor_args, world_params=world_params)
-        
-        mppi_params = exp_params['mppi']
-        dynamics_model = rollout_fn.dynamics_model
-        mppi_params['d_action'] = dynamics_model.d_action
-        mppi_params['action_lows'] = -exp_params['model']['max_acc'] * torch.ones(dynamics_model.d_action, **self.tensor_args)
-        mppi_params['action_highs'] = exp_params['model']['max_acc'] * torch.ones(dynamics_model.d_action, **self.tensor_args)
-        init_q = torch.tensor(exp_params['model']['init_state'], **self.tensor_args)
-        init_action = torch.zeros((mppi_params['horizon'], dynamics_model.d_action), **self.tensor_args)
+            self.exp_params = yaml.load(file, Loader=yaml.FullLoader)
+        self.exp_params['robot_params'] = self.exp_params['model'] #robot_params
+
+
+        self.rollout_fn = self.get_rollout_fn(exp_params=self.exp_params, tensor_args=self.tensor_args, world_params=self.world_params)
+
+        self.mppi_params = self.exp_params['mppi']
+        dynamics_model = self.rollout_fn.dynamics_model
+        self.mppi_params['d_action'] = dynamics_model.d_action
+        self.mppi_params['action_lows'] = -self.exp_params['model']['max_acc'] * torch.ones(dynamics_model.d_action, **self.tensor_args)
+        self.mppi_params['action_highs'] = self.exp_params['model']['max_acc'] * torch.ones(dynamics_model.d_action, **self.tensor_args)
+        init_q = torch.tensor(self.exp_params['model']['init_state'], **self.tensor_args)
+        init_action = torch.zeros((self.mppi_params['horizon'], dynamics_model.d_action), **self.tensor_args)
         init_action[:,:] += init_q
-        if(exp_params['control_space'] == 'acc'):
-            mppi_params['init_mean'] = init_action * 0.0 # device=device)
-        elif(exp_params['control_space'] == 'pos'):
-            mppi_params['init_mean'] = init_action
-        mppi_params['rollout_fn'] = rollout_fn
-        mppi_params['tensor_args'] = self.tensor_args
-        controller = MPPI(**mppi_params)
-        self.exp_params = exp_params
-        return controller
+        if(self.exp_params['control_space'] == 'acc'):
+            self.mppi_params['init_mean'] = init_action * 0.0 # device=device)
+        elif(self.exp_params['control_space'] == 'pos'):
+            self.mppi_params['init_mean'] = init_action
+        self.mppi_params['rollout_fn'] = self.rollout_fn
+        self.mppi_params['tensor_args'] = self.tensor_args
+
+
+    def initialize_mpc(self):
+        self.controller = MPPI(**self.mppi_params)
+        self.initialize_control_process()
+        self.init_aux()
+        # self.exp_params = exp_params
+        # return controller
 

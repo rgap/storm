@@ -144,7 +144,7 @@ class KnotSampleLib(object):
         self.Z = torch.zeros(self.ndims, **tensor_args)
         if(covariance_matrix is None):
             self.cov_matrix = torch.eye(self.ndims, **tensor_args)
-        self.scale_tril = torch.cholesky(self.cov_matrix.to(dtype=torch.float32)).to(**tensor_args)
+        self.scale_tril = torch.linalg.cholesky(self.cov_matrix.to(dtype=torch.float32)).to(**tensor_args)
         self.mvn = MultivariateNormal(loc=self.Z, scale_tril=self.scale_tril, )
     def get_samples(self, sample_shape, **kwargs):
         # sample shape is the number of particles to sample

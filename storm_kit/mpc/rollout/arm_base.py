@@ -48,7 +48,7 @@ class ArmBase(RolloutBase):
         mppi_params = exp_params['mppi']
         model_params = exp_params['model']
 
-        robot_params = exp_params['robot_params']
+        self.robot_params = exp_params['robot_params']
         
         assets_path = get_assets_path()
         #print('EE LINK',exp_params['model']['ee_link_name'])
@@ -116,15 +116,15 @@ class ArmBase(RolloutBase):
                                                     tensor_args=self.tensor_args)
 
         if(self.exp_params['cost']['voxel_collision']['weight'] > 0):
-            self.voxel_collision_cost = VoxelCollisionCost(robot_params=robot_params,
+            self.voxel_collision_cost = VoxelCollisionCost(robot_params=self.robot_params,
                                                            tensor_args=self.tensor_args,
                                                            **self.exp_params['cost']['voxel_collision'])
             
         if(exp_params['cost']['primitive_collision']['weight'] > 0.0):
-            self.primitive_collision_cost = PrimitiveCollisionCost(world_params=world_params, robot_params=robot_params, tensor_args=self.tensor_args, **self.exp_params['cost']['primitive_collision'])
+            self.primitive_collision_cost = PrimitiveCollisionCost(world_params=world_params, robot_params=self.robot_params, tensor_args=self.tensor_args, **self.exp_params['cost']['primitive_collision'])
 
         if(exp_params['cost']['robot_self_collision']['weight'] > 0.0):
-            self.robot_self_collision_cost = RobotSelfCollisionCost(robot_params=robot_params, tensor_args=self.tensor_args, **self.exp_params['cost']['robot_self_collision'])
+            self.robot_self_collision_cost = RobotSelfCollisionCost(robot_params=self.robot_params, tensor_args=self.tensor_args, **self.exp_params['cost']['robot_self_collision'])
 
 
         self.ee_vel_cost = EEVelCost(ndofs=self.n_dofs,device=device, float_dtype=float_dtype,**exp_params['cost']['ee_vel'])
@@ -136,6 +136,12 @@ class ArmBase(RolloutBase):
 
         self.link_pos_seq = torch.zeros((1, 1, len(self.dynamics_model.link_names), 3), **self.tensor_args)
         self.link_rot_seq = torch.zeros((1, 1, len(self.dynamics_model.link_names), 3, 3), **self.tensor_args)
+
+    def update_collision(self, world_params):
+        # self.primitive_collision_cost = PrimitiveCollisionCost(world_params=world_params, robot_params=self.robot_params, tensor_args=self.tensor_args, **self.exp_params['cost']['primitive_collision'])
+        self.primitive_collision_cost.update_collision(world_params)
+
+
     def cost_fn(self, state_dict, action_batch, no_coll=False, horizon_cost=True):
         
         ee_pos_batch, ee_rot_batch = state_dict['ee_pos_seq'], state_dict['ee_rot_seq']

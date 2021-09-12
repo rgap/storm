@@ -47,4 +47,3 @@ class ReacherTask(ArmTask):
     def get_rollout_fn(self, **kwargs):
         rollout_fn = ArmReacher(**kwargs)
         return rollout_fn
-

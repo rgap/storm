@@ -34,6 +34,9 @@ class RobotWorldCollision:
         self.tensor_args = robot_collision.tensor_args
         self.robot_coll = robot_collision
         self.world_coll = world_collision
+
+    def update_world_coll(self, world_collision):
+        self.world_coll = world_collision
     def update_robot_link_poses(self, links_pos, links_rot):
         self.robot_coll.update_robot_link_poses(links_pos, links_rot)
     def update_world_robot_pose(self, w_pos, w_rot):
@@ -71,12 +74,21 @@ class RobotWorldCollisionPrimitive(RobotWorldCollision):
                  bounds=None, grid_resolution=None):
         robot_collision = RobotSphereCollision(robot_collision_params, robot_batch_size, tensor_args)
 
-        
-        world_collision = WorldPrimitiveCollision(world_collision_params, tensor_args=tensor_args, batch_size=world_batch_size, bounds=bounds, grid_resolution=grid_resolution)
+        self.world_collision_params = world_collision_params
+        self.tensor_args = tensor_args
+        self.world_batch_size = world_batch_size
+        self.bounds = bounds
+        self.grid_resolution = grid_resolution
+        world_collision = WorldPrimitiveCollision(self.world_collision_params, tensor_args=self.tensor_args, batch_size=self.world_batch_size, bounds=self.bounds, grid_resolution=self.grid_resolution)
         self.robot_batch_size = robot_batch_size
 
         super().__init__(robot_collision, world_collision)
         self.dist = None
+
+    def update_collision(self, world_collision_params):
+        self.world_collision_params = world_collision_params
+        world_collision = WorldPrimitiveCollision(world_collision_params, tensor_args=self.tensor_args, batch_size=self.world_batch_size, bounds=self.bounds, grid_resolution=self.grid_resolution)
+        self.update_world_coll(world_collision)
 
     def build_batch_features(self, batch_size, clone_pose=True, clone_points=True):
         self.batch_size = batch_size

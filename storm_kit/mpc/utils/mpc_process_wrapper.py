@@ -67,10 +67,10 @@ class ControlProcess(object):
         self.result_queue = Queue(maxsize=1)
         self.opt_queue = Queue(maxsize=1)
 
-        
-        self.opt_process = Process(target=optimize_process, args=('control_instance.p', self.opt_queue,self.result_queue))
-        self.opt_process.daemon = True
-        self.opt_process.start()
+        # Not used cuz of memory
+        # self.opt_process = Process(target=optimize_process, args=('control_instance.p', self.opt_queue,self.result_queue))
+        # self.opt_process.daemon = True
+        # self.opt_process.start()
         self.controller = controller
         self.control_dt = control_dt
         self.prev_mpc_tstep = 0.0
@@ -122,7 +122,10 @@ class ControlProcess(object):
         command_buffer, command_tstep_buffer = self.truncate_command(self.command[0], t_step, self.command_tstep)
         
         act = self.controller.rollout_fn.dynamics_model.integrate_action_step(command_buffer[0], self.control_dt)
-        return act, command_tstep_buffer, self.command[1], command_buffer
+
+        ## NEXT ACTION COST
+        action_cost = command[3][0]
+        return act, command_tstep_buffer, self.command[1], command_buffer, action_cost
 
     def get_command(self, t_step, curr_state, debug=False, control_dt=0.01):
         if(self.opt_queue.empty()):# and self.command is None):

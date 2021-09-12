@@ -227,6 +227,9 @@ class OLGaussianMPC(Controller):
 
         trajectories = self._rollout_fn(state, act_seq)
         return trajectories
+
+    def compute_cost(self, state, action):
+        return self._rollout_fn(state, action)
     
     def _shift(self, shift_steps=1):
         """
