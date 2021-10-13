@@ -137,10 +137,6 @@ class ArmBase(RolloutBase):
         self.link_pos_seq = torch.zeros((1, 1, len(self.dynamics_model.link_names), 3), **self.tensor_args)
         self.link_rot_seq = torch.zeros((1, 1, len(self.dynamics_model.link_names), 3, 3), **self.tensor_args)
 
-    def update_collision(self, world_params):
-        # self.primitive_collision_cost = PrimitiveCollisionCost(world_params=world_params, robot_params=self.robot_params, tensor_args=self.tensor_args, **self.exp_params['cost']['primitive_collision'])
-        self.primitive_collision_cost.update_collision(world_params)
-
 
     def cost_fn(self, state_dict, action_batch, no_coll=False, horizon_cost=True):
         

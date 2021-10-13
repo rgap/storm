@@ -50,12 +50,10 @@ class ArmTask(BaseTask):
             print('init_cov update')
             self.controller.init_cov = init_cov
 
-    def change_collision_params(self, world_collision):
-        self.rollout_fn.primitive_collision_cost.robot_world_coll.world_coll.load_collision_model(world_collision)
-        self.world_params = {'world_model': world_collision}
-        self.rollout_fn.update_collision(world_collision)
-        
-        
+    def change_collision_params(self, sampling_distr, d1, d2, d3):
+
+        self.rollout_fn.primitive_collision_cost.robot_world_coll.world_coll.change_collision_cube(sampling_distr, d1, d2, d3)
+
     def get_rollout_fn(self, **kwargs):
         rollout_fn = ArmBase(**kwargs)
         return rollout_fn
@@ -68,7 +66,7 @@ class ArmTask(BaseTask):
 
         world_yml = join_path(get_gym_configs_path(), collision_file)
         with open(world_yml) as file:
-            self.world_params = yaml.load(file, Loader=yaml.FullLoader)
+            world_params = yaml.load(file, Loader=yaml.FullLoader)
 
         mpc_yml_file = join_path(mpc_configs_path(), task_file)
 
@@ -77,7 +75,7 @@ class ArmTask(BaseTask):
         self.exp_params['robot_params'] = self.exp_params['model'] #robot_params
 
 
-        self.rollout_fn = self.get_rollout_fn(exp_params=self.exp_params, tensor_args=self.tensor_args, world_params=self.world_params)
+        self.rollout_fn = self.get_rollout_fn(exp_params=self.exp_params, tensor_args=self.tensor_args, world_params=world_params)
 
         self.mppi_params = self.exp_params['mppi']
         dynamics_model = self.rollout_fn.dynamics_model
@@ -93,7 +91,6 @@ class ArmTask(BaseTask):
             self.mppi_params['init_mean'] = init_action
         self.mppi_params['rollout_fn'] = self.rollout_fn
         self.mppi_params['tensor_args'] = self.tensor_args
-
 
     def initialize_mpc(self):
         self.controller = MPPI(**self.mppi_params)

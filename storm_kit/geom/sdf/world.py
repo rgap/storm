@@ -128,6 +128,7 @@ class WorldGridCollision(WorldCollision):
         self.ind_matrix = ind_matrix
         pt_matrix = self.proj_idx_pt.transform_point(ind_matrix)
 
+        # get_signed_distance USES world_cubes collisions
         dist_matrix = torch.flatten(self.get_signed_distance(pt_matrix))
         self.dist_matrix = dist_matrix
         
@@ -197,6 +198,31 @@ class WorldPrimitiveCollision(WorldGridCollision):
         if(bounds is not None):
             self.update_world_sdf()
 
+    def change_collision_cube(self, sampling_distr, d1, d2, d3):
+
+        # self._world_cubes[0][4][0] = 0.2
+        # self._world_cubes[0][4][1] = 0.1
+        # self._world_cubes[0][4][2] = 0.8
+
+        if d1:
+            mu = d1[0] if d1[0] else self._world_cubes[0][4][0]
+            sampled_dim = sampling_distr(mu, d1[1])
+            self._world_cubes[0][4][0] = sampled_dim
+        if d2:
+            mu = d2[0] if d2[0] else self._world_cubes[0][4][1]
+            sampled_dim = sampling_distr(mu, d2[1])
+            self._world_cubes[0][4][1] = sampled_dim
+        if d3:
+            mu = d3[0] if d3[0] else self._world_cubes[0][4][2]
+            sampled_dim = sampling_distr(mu, d3[1])
+            self._world_cubes[0][4][2] = sampled_dim
+
+        # Slow update
+        sdf_grid = self._compute_sdfgrid()
+        self.scene_sdf_matrix = sdf_grid
+        self.scene_sdf = sdf_grid.flatten()
+        # self.update_world_sdf()
+
     def load_collision_model(self, world_collision_params):
         
         world_objs = world_collision_params['coll_objs']
@@ -228,9 +254,6 @@ class WorldPrimitiveCollision(WorldGridCollision):
             cube = tensor_cube(pose_fixed, dims, tensor_args=self.tensor_args)
             self._world_cubes.append(cube)
 
-            
-            
-            
         self.n_objs = self._world_spheres.shape[1] + len(self._world_cubes)
         
     
@@ -287,6 +310,7 @@ class WorldPrimitiveCollision(WorldGridCollision):
         dist = get_sphere_primitive_distance(w_sphere, self._world_spheres, self._world_cubes)
         return dist
 
+    # Uses world_cubes collisions
     def get_pt_distance(self, w_pts):
         """
         Args:
@@ -294,12 +318,14 @@ class WorldPrimitiveCollision(WorldGridCollision):
         """
         if(len(w_pts.shape) == 2):
             w_pts = w_pts.view(w_pts.shape[0], 1, 3)
-        if(self.dist.shape[0] != w_pts.shape[0] or self.dist.shape[1] != self.n_objs or self.dist_shape[2] != w_pts.shape[1]):
+        if(self.dist.shape[0] != w_pts.shape[0] or self.dist.shape[1] != self.n_objs): # TODO or self.dist_shape[2] != w_pts.shape[1]):
+            # print('self.dist_shape', self.dist_shape) # doesnt exist ???
             self.dist = torch.zeros((w_pts.shape[0], self.n_objs, w_pts.shape[1]), **self.tensor_args)
         dist = self.dist
         dist = get_pt_primitive_distance(w_pts, self._world_spheres, self._world_cubes, dist)
         return dist
 
+    # Uses world_cubes collisions
     def get_signed_distance(self, w_pts):
         dist = torch.max(self.get_pt_distance(w_pts), dim=1)[0]
         return dist
@@ -371,8 +397,6 @@ class WorldPointCloudCollision(WorldGridCollision):
         self.update_world_voxel(scene_pc)
         
         sdf_grid = self._compute_sdfgrid()
-
-
         self.scene_sdf_matrix = sdf_grid
         self.scene_sdf = sdf_grid.flatten()
         

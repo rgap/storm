@@ -49,9 +49,6 @@ class PrimitiveCollisionCost(nn.Module):
         self.t_mat = None
         self.distance_threshold = distance_threshold
 
-    def update_collision(self, world_collision_params):
-        self.robot_world_coll.update_collision(world_collision_params)
-
     def forward(self, link_pos_seq, link_rot_seq):
 
 

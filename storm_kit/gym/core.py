@@ -22,7 +22,7 @@
 # DEALINGS IN THE SOFTWARE.#
 import numpy as np
 try:
-    from  isaacgym import gymapi
+    from isaacgym import gymapi
     from isaacgym import gymutil
 except Exception:
     print("ERROR: gym not loaded, this is okay when generating docs")
