@@ -26,10 +26,10 @@ import numpy as np
 import trimesh
 from trimesh.voxel.creation import voxelize
 import torch
-import matplotlib
-matplotlib.use('tkagg')
+# import matplotlib
+# matplotlib.use('tkagg')
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 from ...differentiable_robot_model.coordinate_transform import CoordinateTransform, rpy_angles_to_matrix, transform_point
