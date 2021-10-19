@@ -58,6 +58,7 @@ class RobotSelfCollisionNet():
         """        
         try:
             # This sometimes fails # /home/rgap/LIBRARIES/storm/weights/robot_self/franka_self_sdf.pt
+            # because of some CUDA memory error. Maybe some process haven't been terminated
             path = join_path(get_weights_path(), f_name)
             chk = torch.load(path)
 
@@ -83,6 +84,7 @@ class RobotSelfCollisionNet():
             [tensor]: largest signed distance between any two non-consecutive links of the robot.
         """        
         with torch.no_grad():
+            # Sometimes failing
             q_scale = scale_to_net(q, self.norm_dict,'x')
             dist = self.model.forward(q_scale)
             dist_scale = scale_to_base(dist, self.norm_dict, 'y')

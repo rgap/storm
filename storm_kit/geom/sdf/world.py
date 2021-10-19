@@ -20,6 +20,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.#
+import copy
 
 import cv2
 import numpy as np
@@ -115,32 +116,47 @@ class WorldGridCollision(WorldCollision):
         sdf_grid_dims = torch.Size(((self.bounds[1] - self.bounds[0]) / self.grid_resolution).int())
         self.build_transform_matrices(self.bounds, self.grid_resolution)
 
-        sdf_grid = torch.zeros(sdf_grid_dims, **self.tensor_args)
-        self.num_voxels = torch.tensor([sdf_grid.shape[0], sdf_grid.shape[1],
-                                        sdf_grid.shape[2]],
+        self.sdf_grid = torch.zeros(sdf_grid_dims, **self.tensor_args)
+        self.num_voxels = torch.tensor([self.sdf_grid.shape[0], self.sdf_grid.shape[1],
+                                        self.sdf_grid.shape[2]],
                                        **self.tensor_args)
 
         # get indices
 
-        ind_matrix = [[x,y,z] for x in range(sdf_grid.shape[0]) for y in range(sdf_grid.shape[1]) for z in range(sdf_grid.shape[2])]
+        ind_matrix = [[x,y,z] for x in range(self.sdf_grid.shape[0]) for y in range(self.sdf_grid.shape[1]) for z in range(self.sdf_grid.shape[2])]
         
         ind_matrix = torch.tensor(ind_matrix, **self.tensor_args)
         self.ind_matrix = ind_matrix
-        pt_matrix = self.proj_idx_pt.transform_point(ind_matrix)
+        self.pt_matrix = self.proj_idx_pt.transform_point(self.ind_matrix)
 
         # get_signed_distance USES world_cubes collisions
-        dist_matrix = torch.flatten(self.get_signed_distance(pt_matrix))
+        dist_matrix = torch.flatten(self.get_signed_distance(self.pt_matrix))
         self.dist_matrix = dist_matrix
-        
+
         # get corresponding points
         # Get closest distance from indice points to points in pointcloud:
-        for i in range(sdf_grid.shape[0]):
-            for j in range(sdf_grid.shape[1]):
-                for k in range(sdf_grid.shape[2]):
-                    sdf_grid[i,j,k] = dist_matrix[i * (sdf_grid.shape[1] * sdf_grid.shape[2])+ j * (sdf_grid.shape[2]) + k]
-                    
-                    
-        return sdf_grid
+        for i in range(self.sdf_grid.shape[0]):
+            for j in range(self.sdf_grid.shape[1]):
+                for k in range(self.sdf_grid.shape[2]):
+                    self.sdf_grid[i,j,k] = dist_matrix[i * (self.sdf_grid.shape[1] * self.sdf_grid.shape[2])+ j * (self.sdf_grid.shape[2]) + k]
+
+        return self.sdf_grid
+
+    def update_sdfgrid(self):
+
+        # get_signed_distance USES world_cubes collisions
+        dist_matrix = torch.flatten(self.get_signed_distance(self.pt_matrix))
+        self.dist_matrix = dist_matrix
+
+        # get corresponding points
+        # Get closest distance from indice points to points in pointcloud:
+        for i in range(self.sdf_grid.shape[0]):
+            for j in range(self.sdf_grid.shape[1]):
+                for k in range(self.sdf_grid.shape[2]):
+                    self.sdf_grid[i,j,k] = dist_matrix[i * (self.sdf_grid.shape[1] * self.sdf_grid.shape[2])+ j * (self.sdf_grid.shape[2]) + k]
+
+        return self.sdf_grid
+
     
     def check_pts_sdf(self, pts):
         '''
@@ -205,23 +221,22 @@ class WorldPrimitiveCollision(WorldGridCollision):
         # self._world_cubes[0][4][2] = 0.8
 
         if d1:
-            mu = d1[0] if d1[0] else self._world_cubes[0][4][0]
+            mu = d1[0] if d1[0] else self._world_cubes_dimensions[0]
             sampled_dim = sampling_distr(mu, d1[1])
             self._world_cubes[0][4][0] = sampled_dim
         if d2:
-            mu = d2[0] if d2[0] else self._world_cubes[0][4][1]
+            mu = d2[0] if d2[0] else self._world_cubes_dimensions[1]
             sampled_dim = sampling_distr(mu, d2[1])
             self._world_cubes[0][4][1] = sampled_dim
         if d3:
-            mu = d3[0] if d3[0] else self._world_cubes[0][4][2]
+            mu = d3[0] if d3[0] else self._world_cubes_dimensions[2]
             sampled_dim = sampling_distr(mu, d3[1])
             self._world_cubes[0][4][2] = sampled_dim
 
         # Slow update
-        sdf_grid = self._compute_sdfgrid()
+        sdf_grid = self.update_sdfgrid()
         self.scene_sdf_matrix = sdf_grid
         self.scene_sdf = sdf_grid.flatten()
-        # self.update_world_sdf()
 
     def load_collision_model(self, world_collision_params):
         
@@ -255,6 +270,8 @@ class WorldPrimitiveCollision(WorldGridCollision):
             self._world_cubes.append(cube)
 
         self.n_objs = self._world_spheres.shape[1] + len(self._world_cubes)
+
+        self._world_cubes_dimensions = self._world_cubes[0][4].detach().clone()
         
     
     def update_obj_poses(self, objs_pos, objs_rot):
