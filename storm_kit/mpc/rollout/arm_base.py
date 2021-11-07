@@ -139,6 +139,8 @@ class ArmBase(RolloutBase):
 
 
     def cost_fn(self, state_dict, action_batch, no_coll=False, horizon_cost=True):
+
+        # Change obstacle dimensions and restore at the end
         
         ee_pos_batch, ee_rot_batch = state_dict['ee_pos_seq'], state_dict['ee_rot_seq']
         state_batch = state_dict['state_seq']

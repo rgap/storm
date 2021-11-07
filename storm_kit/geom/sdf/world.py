@@ -36,6 +36,8 @@ import torch
 from ...differentiable_robot_model.coordinate_transform import CoordinateTransform, rpy_angles_to_matrix, transform_point
 from ...geom.geom_types import tensor_capsule, tensor_sphere, tensor_cube
 from ...geom.sdf.primitives import get_pt_primitive_distance, get_sphere_primitive_distance
+import pandas as pd
+
 
 class WorldCollision:
     def __init__(self, batch_size=1, tensor_args={'device':"cpu", 'dtype':torch.float32}):
@@ -147,13 +149,20 @@ class WorldGridCollision(WorldCollision):
         # get_signed_distance USES world_cubes collisions
         dist_matrix = torch.flatten(self.get_signed_distance(self.pt_matrix))
         self.dist_matrix = dist_matrix
+        # print(type(dist_matrix))
+        # x_np = dist_matrix.numpy()
+        # x_df = pd.DataFrame(x_np)
+        # x_df.to_csv('/home/rgap/Desktop/franka_bo/franka_bo/experiments_cumulative_distribution/tmp/tmp_changing_y.csv', index=False)
+        # if location >= 7000:
 
         # get corresponding points
         # Get closest distance from indice points to points in pointcloud:
         for i in range(self.sdf_grid.shape[0]):
             for j in range(self.sdf_grid.shape[1]):
                 for k in range(self.sdf_grid.shape[2]):
-                    self.sdf_grid[i,j,k] = dist_matrix[i * (self.sdf_grid.shape[1] * self.sdf_grid.shape[2])+ j * (self.sdf_grid.shape[2]) + k]
+                    self.sdf_grid[i,j,k] = dist_matrix[k  +  j * (self.sdf_grid.shape[2])  +  i * (self.sdf_grid.shape[1] * self.sdf_grid.shape[2])]
+                    # [x + y*WIDTH + Z*WIDTH*DEPTH]
+                    # Original[HEIGHT, WIDTH, DEPTH]
 
         return self.sdf_grid
 
@@ -221,17 +230,30 @@ class WorldPrimitiveCollision(WorldGridCollision):
         # self._world_cubes[0][4][2] = 0.8
 
         if d1:
-            mu = d1[0] if d1[0] else self._world_cubes_dimensions[0]
-            sampled_dim = sampling_distr(mu, d1[1])
+            if isinstance(d1, list):
+                ## Distribution parameter
+                mu = d1[0] if d1[0] else self._world_cubes_dimensions[0]
+                sampled_dim = sampling_distr(mu, d1[1])
+            else:
+                ## Fixed dimension size
+                sampled_dim = d1
             self._world_cubes[0][4][0] = sampled_dim
         if d2:
-            mu = d2[0] if d2[0] else self._world_cubes_dimensions[1]
-            sampled_dim = sampling_distr(mu, d2[1])
+            if isinstance(d2, list):
+                ## Distribution parameter
+                mu = d2[0] if d2[0] else self._world_cubes_dimensions[1]
+                sampled_dim = sampling_distr(mu, d2[1])
+            else:
+                sampled_dim = d2
             self._world_cubes[0][4][1] = sampled_dim
         if d3:
-            mu = d3[0] if d3[0] else self._world_cubes_dimensions[2]
-            sampled_dim = sampling_distr(mu, d3[1])
+            if isinstance(d3, list):
+                mu = d3[0] if d3[0] else self._world_cubes_dimensions[2]
+                sampled_dim = sampling_distr(mu, d3[1])
+            else:
+                sampled_dim = d3
             self._world_cubes[0][4][2] = sampled_dim
+        # print('Dimensions:', self._world_cubes[0][4])
 
         # Slow update
         sdf_grid = self.update_sdfgrid()
