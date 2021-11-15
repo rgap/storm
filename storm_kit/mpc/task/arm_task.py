@@ -42,13 +42,25 @@ class ArmTask(BaseTask):
         super().__init__(tensor_args=tensor_args)
         self.init_mppi(task_file, robot_file, world_file)
 
-    def change_params(self, beta, init_cov):
-        if beta:
-            print('beta update')
-            self.controller.beta = beta
-        if init_cov:
-            print('init_cov update')
-            self.controller.init_cov = init_cov
+    def print_params(self):
+        print("[{}, {}, {}, {}, {}, {}, {}]".format(self.controller.beta, self.controller.init_cov,
+                                                    self.controller.gamma, self.controller.alpha, self.controller.kappa,
+                                                    self.controller.step_size_mean, self.controller.step_size_cov))
+
+    def change_params(self, varying_params):
+        if 'beta' in varying_params and varying_params['beta'] != None:
+            # print('beta update')
+            self.controller.beta = varying_params['beta']
+        # if 'gamma' in varying_params and varying_params['gamma'] != None:
+        #     self.controller.gamma = varying_params['gamma']
+        if 'alpha' in varying_params and varying_params['alpha'] != None:
+            self.controller.alpha = varying_params['alpha']
+        if 'kappa' in varying_params and varying_params['kappa'] != None:
+            self.controller.kappa = varying_params['kappa']
+        if 'step_size_mean' in varying_params and varying_params['step_size_mean'] != None:
+            self.controller.step_size_mean = varying_params['step_size_mean']
+        if 'step_size_cov' in varying_params and varying_params['step_size_cov'] != None:
+            self.controller.step_size_cov = varying_params['step_size_cov']
 
     def change_collision_params(self, sampling_distr, d1, d2, d3):
 

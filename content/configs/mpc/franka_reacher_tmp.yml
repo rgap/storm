@@ -160,27 +160,20 @@ cost:
   retract_state : [0.00, 0.0, 0.00, -1.5, 0.00, 2.0, 0.0]
   retract_weight: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,0.0]
 
-
-# x = [[0.9625155967620267, 3.2769870809708816, 0.922804807403667, 0.9824634077704844, 0.0031823523215792917, 0.005072711959005229, 0.9505124169069277, 0.9640179232434014]]
-
-
 mppi:
-  beta              : 1.4886071125114217 # lambda or temperature
-  alpha             : 0.9976359881197754
-  kappa             : 0.004480617296578478
-  step_size_mean    : 0.7759288613525674
-  step_size_cov     : 0.955933148685306
-
-  init_cov          : 0.5
-  gamma             : 0.98
-  null_act_frac     : 0.01
   horizon           : 20
+  init_cov          : 0.5 #.5
+  gamma             : 0.98
   n_iters           : 1
+  step_size_mean    : 0.98
+  step_size_cov     : 0.7
+  beta              : 1 # lambda or temperature
+  alpha             : 1
   num_particles     : 150 #10000
   update_cov        : True
   cov_type          : 'diag_AxA' # 
-  
-  
+  kappa             : 0.005
+  null_act_frac     : 0.01
   sample_mode       : 'mean'
   base_action       : 'repeat'
   squash_fn         : 'clamp'

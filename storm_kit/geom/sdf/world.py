@@ -253,7 +253,7 @@ class WorldPrimitiveCollision(WorldGridCollision):
             else:
                 sampled_dim = d3
             self._world_cubes[0][4][2] = sampled_dim
-        # print('Dimensions:', self._world_cubes[0][4])
+        print('Sampled dimensions:', self._world_cubes[0][4])
 
         # Slow update
         sdf_grid = self.update_sdfgrid()

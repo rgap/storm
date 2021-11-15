@@ -120,10 +120,13 @@ class ControlProcess(object):
         self.command = command
 
         command_buffer, command_tstep_buffer = self.truncate_command(self.command[0], t_step, self.command_tstep)
-        
+
+        # act is the first in "command"
         act = self.controller.rollout_fn.dynamics_model.integrate_action_step(command_buffer[0], self.control_dt)
 
-        ## NEXT ACTION COST
+        ## NEXT ACTION COST?? IT IS ALREADY BEING COMPUTED
+        # self.controller.rollout_fn.compute_cost(state_tensor, act)
+        # ACTUAL COST corresponding to "act"
         action_cost = command[3][0]
         return act, command_tstep_buffer, self.command[1], command_buffer, action_cost
 

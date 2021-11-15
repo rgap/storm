@@ -197,8 +197,6 @@ class ArmBase(RolloutBase):
         if self.exp_params['cost']['ee_vel']['weight'] > 0:
             cost += self.ee_vel_cost.forward(state_batch, lin_jac_batch)
 
-
-
         if(not no_coll):
             if self.exp_params['cost']['robot_self_collision']['weight'] > 0:
                 #coll_cost = self.robot_self_collision_cost.forward(link_pos_batch, link_rot_batch)
@@ -210,9 +208,20 @@ class ArmBase(RolloutBase):
             if self.exp_params['cost']['voxel_collision']['weight'] > 0:
                 coll_cost = self.voxel_collision_cost.forward(link_pos_batch, link_rot_batch)
                 cost += coll_cost
-
         
         return cost
+
+    def compute_cost(self, start_state, act_seq):
+        act_seq = torch.tensor(act_seq)[None, None, :]
+        with profiler.record_function("robot_model"):
+            state_dict = self.dynamics_model.rollout_open_loop(start_state, act_seq)
+
+        #link_pos_seq, link_rot_seq = self.dynamics_model.get_link_poses()
+        with profiler.record_function("cost_fns"):
+            cost_seq = self.cost_fn(state_dict, act_seq)
+
+        return cost_seq
+
     
     def rollout_fn(self, start_state, act_seq):
         """
@@ -229,7 +238,7 @@ class ArmBase(RolloutBase):
         #print('step...')
         with profiler.record_function("robot_model"):
             state_dict = self.dynamics_model.rollout_open_loop(start_state, act_seq)
-        
+
         
         #link_pos_seq, link_rot_seq = self.dynamics_model.get_link_poses()
         with profiler.record_function("cost_fns"):

@@ -64,7 +64,6 @@ class PoseCost(nn.Module):
     
 
     def forward(self, ee_pos_batch, ee_rot_batch, ee_goal_pos, ee_goal_rot):
-
         
         inp_device = ee_pos_batch.device
         ee_pos_batch = ee_pos_batch.to(device=self.device,
