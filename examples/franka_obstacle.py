@@ -196,7 +196,7 @@ class FrankaSimulation():
 
         self.mpc_control.initialize_mpc()
         if 'beta' in varying_params and 'init_cov' in varying_params:
-            self.mpc_control.change_params(varying_params['beta'], varying_params['init_cov'])
+            self.mpc_control.change_params(varying_params)
 
         ################## Goal ROBOT state??
         franka_bl_state = np.array([-0.3, 0.3, 0.2, -2.0, 0.0, 2.4, 0.0,
