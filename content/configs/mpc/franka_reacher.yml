@@ -171,7 +171,7 @@ mppi:
   step_size_mean    : 0.7759288613525674
   step_size_cov     : 0.955933148685306
 
-  init_cov          : 0.5
+  init_cov          : 1.78571429
   gamma             : 0.98
   null_act_frac     : 0.01
   horizon           : 20
